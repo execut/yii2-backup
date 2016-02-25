@@ -1,5 +1,5 @@
 {
-  "name": "execut/yii2-cols-list-view",
+  "name": "execut/yii2-backup",
   "version": "1.0.0",
   "description": "Database and files backup command for yii2",
   "keywords": ["yii2", "files backup", "database backup"],
@@ -12,6 +12,7 @@
     }
   ],
   "require": {
+    "zip": ">=3.0.0",
     "yiisoft/yii2": "*"
   },
   "autoload": {

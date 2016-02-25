@@ -1,5 +1,6 @@
 # yii2-backup
-Command for backup yii2 project databases and gitignored files.
+Command for reserving yii2 project databases and gitignored files. After starting command databases dumps and project
+folders specified in the settings is compressed, it split in pieces and fill them to the specified ftp.
 
 ## Installation
 
@@ -30,5 +31,12 @@ For usage add in console this config and modify it:
                 'dbOther',
             ],
             'adminMail' => 'root@localhost.com',
+            'filePartSize' => '300MiB', // Split unix command part size
         ],
 ...
+
+
+After configuration, simple add task to cron:
+```
+0 6 * * *	root	cd /projectFoder && ./yii backup
+```
