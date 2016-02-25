@@ -1,0 +1,22 @@
+{
+  "name": "execut/yii2-cols-list-view",
+  "version": "1.0.0",
+  "description": "Database and files backup command for yii2",
+  "keywords": ["yii2", "files backup", "database backup"],
+  "homepage": "https://github.com/execut/yii2-backup",
+  "type": "yii2-extension",
+  "license": "Apache-2.0",
+  "authors": [
+    {
+      "name": "eXeCUT"
+    }
+  ],
+  "require": {
+    "yiisoft/yii2": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "execut\\backup\\": ""
+    }
+  }
+}
