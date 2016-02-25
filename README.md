@@ -12,10 +12,11 @@ Either run
 
 ```
 $ php composer.phar require execut/yii2-backup "dev-master"
+```
 
 ### Configuration
 For usage add in console this config and modify it:
-
+```php
 <?php
 ...
     'controllerMap' => [
@@ -34,7 +35,7 @@ For usage add in console this config and modify it:
             'filePartSize' => '300MiB', // Split unix command part size
         ],
 ...
-
+```
 
 After configuration, simple add task to cron:
 ```
