@@ -15,7 +15,6 @@ $ php composer.phar require execut/yii2-backup "dev-master"
 ### Configuration
 For usage add in console this config and modify it:
 
-```php
 <?php
 ...
     'controllerMap' => [
@@ -33,4 +32,3 @@ For usage add in console this config and modify it:
             'adminMail' => 'root@localhost.com',
         ],
 ...
-```
