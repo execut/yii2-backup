@@ -12,7 +12,8 @@
     }
   ],
   "require": {
-    "yiisoft/yii2": "*"
+    "yiisoft/yii2": "*",
+    "yii2mod/yii2-ftp": "*"
   },
   "autoload": {
     "psr-4": {
