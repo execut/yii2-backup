@@ -140,9 +140,6 @@ class BackupController extends Controller {
      * Index action
      */
     public function actionIndex() {
-        $results = $this->calculateF(10000);
-        var_dump($this->calculateF(10));
-        exit;
         try {
             $this->makeDbDumps();
 
