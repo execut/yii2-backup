@@ -1,6 +1,6 @@
 {
   "name": "execut/yii2-backup",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Database and files backup command for yii2",
   "keywords": ["yii2", "files backup", "database backup"],
   "homepage": "https://github.com/execut/yii2-backup",
