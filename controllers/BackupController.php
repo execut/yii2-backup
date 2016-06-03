@@ -111,17 +111,17 @@ class BackupController extends Controller {
     protected $defaultDumpCommands = [
         'mysql' => [
             'mysqldump',
-            'u' => '{user}',
+            'u ' => '{user}',
             'p' => '{password}',
-            'h' => '{host}',
-            'P' => '{port}',
+            'h ' => '{host}',
+            'P ' => '{port}',
             '{dbname} > {file}',
         ],
         'pgsql' => [
             'PGPASSWORD="{password}" pg_dump',
-            'U' => '{user}',
-            'h' => '{host}',
-            'p' => '{port}',
+            'U ' => '{user}',
+            'h ' => '{host}',
+            'p ' => '{port}',
             '{dbname} > {file}'
         ],
     ];
@@ -161,7 +161,6 @@ class BackupController extends Controller {
         foreach ($this->dbKeys as $key) {
             $file = \yii::getAlias('@runtime') . '/dump-' . $key . '.sql';
             $command = $this->extractCommandFromParams($key, $file);
-
 
             exec($command);
 
@@ -320,7 +319,7 @@ class BackupController extends Controller {
             $params[$paramKey] = $paramValue;
         }
 
-        $commandsParams = array_merge($this->dumpCommands, $this->defaultDumpCommands);
+        $commandsParams = array_merge($this->defaultDumpCommands, $this->dumpCommands);
         if (!array_key_exists($driverName, $commandsParams)) {
             throw new Exception('Driver by name "' . $driverName . '" is not supported, set it in "dumpCommands" param');
         }
@@ -331,7 +330,7 @@ class BackupController extends Controller {
             if (is_int($paramKey)) {
                 $paramKey = '';
             } else {
-                $paramKey = '-' . $paramKey . ' ';
+                $paramKey = '-' . $paramKey;
                 if (empty($params[$paramValue]) ) {
                     continue;
                 }
