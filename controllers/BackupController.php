@@ -7,6 +7,9 @@ namespace execut\backup\controllers;
 use execut\yii\base\Exception;
 use yii\console\Controller;
 use yii\db\Connection;
+use yii\helpers\Console;
+use yii\helpers\FileHelper;
+
 class BackupController extends Controller {
     /**
      * Redefine default dump commands.
@@ -177,28 +180,20 @@ class BackupController extends Controller {
      */
     protected function zipFiles()
     {
-        $zipFile = tempnam(\yii::getAlias('@runtime'), 'backup_');
-        $zipCommand = 'zip -q -r -9 - ' . implode(' ', $this->folders) . ' | split --verbose -b ' . $this->filePartSize . ' - ' . $zipFile . '_';
+		if (!file_exists(\yii::getAlias('@runtime').'/backups/')) {
+			mkdir(\yii::getAlias('@runtime').'/backups/');
+		}
+        $zipFile = \yii::getAlias('@runtime').'/backups/'.date('Ymd-His');
+        $zipCommand = 'zip - ' . implode(' ', $this->folders) . ' | split -b ' . $this->filePartSize . ' - ' . $zipFile;
         exec($zipCommand, $out);
-        $uploadedFiles = [];
-        foreach ($out as $file) {
-            if (strpos($file, '‘') !== false) {
-                $start = '‘';
-                $end = '’';
-            } else if (strpos($file, '»') !== false) {
-                $start = '«';
-                $end = '»';
-            } else {
-                $start = '\'';
-                $end = '\'';
-            }
 
-            $parts = explode($start, $file);
-            $fileName = str_replace($end, '', $parts[1]);
+		$files = FileHelper::findFiles(\yii::getAlias('@runtime').'/backups/');
+		$uploadedFiles = [];
 
-            $this->dumpFiles[] = $uploadedFiles[] = $fileName;
-        }
-
+		foreach($files as $file) {
+			$this->dumpFiles[] = $uploadedFiles[] = $file;
+		}
+ 
         return $uploadedFiles;
     }
 
@@ -266,7 +261,7 @@ class BackupController extends Controller {
             }
 
             if ($hasError) {
-                throw new Exception($lastError);
+                throw new \Exception($lastError);
             }
         }
     }
