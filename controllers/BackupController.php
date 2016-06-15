@@ -103,6 +103,14 @@ class BackupController extends Controller {
      * @var string
      */
     public $filePartSize = '300MiB';
+	
+	
+    /**
+     * Cache dir name.
+     *
+     * @var string
+     */	
+	public $cacheDir = 'backups';
 
     protected $dumpFiles = [];
 
@@ -180,14 +188,12 @@ class BackupController extends Controller {
      */
     protected function zipFiles()
     {
-		if (!file_exists(\yii::getAlias('@runtime').'/backups/')) {
-			mkdir(\yii::getAlias('@runtime').'/backups/');
-		}
-        $zipFile = \yii::getAlias('@runtime').'/backups/'.date('Ymd-His');
+		$cacheDir = $this->getCacheDir();
+        $zipFile = $cacheDir.'/'.date('Ymd-His');
         $zipCommand = 'zip - ' . implode(' ', $this->folders) . ' | split -b ' . $this->filePartSize . ' - ' . $zipFile;
         exec($zipCommand, $out);
 
-		$files = FileHelper::findFiles(\yii::getAlias('@runtime').'/backups/');
+		$files = FileHelper::findFiles( $cacheDir.'/');
 		$uploadedFiles = [];
 
 		foreach($files as $file) {
@@ -196,6 +202,19 @@ class BackupController extends Controller {
  
         return $uploadedFiles;
     }
+	
+	/**
+     * Get cache dir
+     */
+	public function getCacheDir() {
+		
+		if (!file_exists(\yii::getAlias('@runtime').'/'.$this->cacheDir)) {
+			mkdir(\yii::getAlias('@runtime').'/'.$this->cacheDir);
+		}
+		
+		return \yii::getAlias('@runtime').'/'.$this->cacheDir;
+		
+	}
 
     /**
      * Clear temporary files
