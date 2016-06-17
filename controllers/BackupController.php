@@ -4,7 +4,7 @@
  */
 namespace execut\backup\controllers;
 
-use execut\yii\base\Exception;
+use yii\baseException;
 use yii\console\Controller;
 use yii\db\Connection;
 use yii\helpers\Console;
@@ -156,7 +156,7 @@ class BackupController extends Controller {
 
             $uploadedFiles = $this->zipFiles();
             $this->uploadFiles($uploadedFiles);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->sendError($e->getMessage());
         }
 
@@ -273,14 +273,14 @@ class BackupController extends Controller {
                     } else {
                         $hasError = false;
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $tryCount++;
                     $lastError = mb_convert_encoding($e->getMessage(), 'utf8', 'cp1251');
                 }
             }
 
             if ($hasError) {
-                throw new \Exception($lastError);
+                throw new Exception($lastError);
             }
         }
     }
