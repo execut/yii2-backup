@@ -4,6 +4,7 @@
  */
 namespace execut\backup\controllers;
 
+use execut\yii\helpers\ArrayHelper;
 use yii\baseException;
 use yii\console\Controller;
 use yii\db\Connection;
@@ -154,12 +155,33 @@ class BackupController extends Controller {
             $this->makeDbDumps();
 
             $uploadedFiles = $this->zipFiles();
-            $this->uploadFiles($uploadedFiles);
+            $this->getManager()->uploadFiles($uploadedFiles);
         } catch (Exception $e) {
             $this->sendError($e->getMessage());
         }
 
         $this->clearFiles();
+    }
+
+    protected $manager = null;
+    protected function getManager() {
+        if ($this->manager !== null) {
+            return $this->manager;
+        }
+
+        $manager = $this->module->manager;
+        $params = array_filter([
+            'dir' => $this->ftpDir,
+            'host' => $this->ftpHost,
+            'login' => $this->ftpLogin,
+            'password' => $this->ftpPassword,
+            'port' => $this->ftpPort,
+            'ssl' => $this->ftpSsl,
+            'timeout' => $this->ftpTimeout,
+        ]);
+        \yii::configure($manager, $params);
+
+        return $this->manager = $manager;
     }
 
     /**
@@ -235,67 +257,6 @@ class BackupController extends Controller {
     {
         mail($this->adminMail, 'Backup errors ' . date('Y-m-d H:i:s'), $error);
         $this->stderr($error . "\n");
-    }
-
-    /**
-     * Upload parts of zip arhive
-     *
-     * @param $uploadedFiles
-     * @param $fileSize
-     * @throws \yii2mod\ftp\FtpException
-     */
-    protected function uploadFiles($uploadedFiles)
-    {
-        $file = date('H_i_s');
-        foreach ($uploadedFiles as $key => $uploadedFile) {
-            $ftp = new \yii2mod\ftp\FtpClient();
-            $ftp->connect($this->ftpHost, $this->ftpSsl, $this->ftpPort, $this->ftpTimeout);
-            $ftp->pasv(true);
-            $ftp->login($this->ftpLogin, $this->ftpPassword);
-            $this->goToBackupDir($ftp);
-            $folder = $this->folderPrefix . '_' . date('Y-m-d');
-            if (!$ftp->isDir($folder)) {
-                $ftp->mkdir($folder);
-            }
-
-            $ftp->chdir($folder);
-            $ftpName = $file . '_' . $key . '.zip';
-            $hasError = true;
-            $tryCount = 0;
-            while ($hasError && $tryCount != 9) {
-                try {
-                    $ftp->fput($ftpName, fopen($uploadedFile, 'r'), FTP_BINARY);
-                    $ftpFileSize = $ftp->size($ftpName);
-                    $realFileSize = filesize($uploadedFile);
-                    if ($ftpFileSize !== $realFileSize) {
-                        $lastError = 'Size of file ' . $ftpName . ' is ' . $ftpFileSize . ' but real is ' . $realFileSize;
-                        $tryCount++;
-                    } else {
-                        $hasError = false;
-                    }
-                } catch (Exception $e) {
-                    $tryCount++;
-                    $lastError = mb_convert_encoding($e->getMessage(), 'utf8', 'cp1251');
-                }
-            }
-
-            if ($hasError) {
-                throw new Exception($lastError);
-            }
-        }
-    }
-
-
-    /**
-     * @param $ftp
-     */
-    protected function goToBackupDir($ftp)
-    {
-        if (!$ftp->isDir($this->ftpDir)) {
-            $ftp->mkdir($this->ftpDir);
-        }
-
-        $ftp->chdir($this->ftpDir);
     }
 
     /**
