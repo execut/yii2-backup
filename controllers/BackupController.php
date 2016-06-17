@@ -4,9 +4,12 @@
  */
 namespace execut\backup\controllers;
 
-use execut\yii\base\Exception;
+use yii\baseException;
 use yii\console\Controller;
 use yii\db\Connection;
+use yii\helpers\Console;
+use yii\helpers\FileHelper;
+
 class BackupController extends Controller {
     /**
      * Redefine default dump commands.
@@ -100,6 +103,14 @@ class BackupController extends Controller {
      * @var string
      */
     public $filePartSize = '300MiB';
+	
+	
+    /**
+     * Cache dir name.
+     *
+     * @var string
+     */	
+	public $cacheDir = 'backups';
 
     protected $dumpFiles = [];
 
@@ -145,7 +156,7 @@ class BackupController extends Controller {
 
             $uploadedFiles = $this->zipFiles();
             $this->uploadFiles($uploadedFiles);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->sendError($e->getMessage());
         }
 
@@ -177,30 +188,33 @@ class BackupController extends Controller {
      */
     protected function zipFiles()
     {
-        $zipFile = tempnam(\yii::getAlias('@runtime'), 'backup_');
-        $zipCommand = 'zip -q -r -9 - ' . implode(' ', $this->folders) . ' | split --verbose -b ' . $this->filePartSize . ' - ' . $zipFile . '_';
+		$cacheDir = $this->getCacheDir();
+        $zipFile = $cacheDir.'/'.date('Ymd-His');
+        $zipCommand = 'zip - ' . implode(' ', $this->folders) . ' | split -b ' . $this->filePartSize . ' - ' . $zipFile;
         exec($zipCommand, $out);
-        $uploadedFiles = [];
-        foreach ($out as $file) {
-            if (strpos($file, '‘') !== false) {
-                $start = '‘';
-                $end = '’';
-            } else if (strpos($file, '»') !== false) {
-                $start = '«';
-                $end = '»';
-            } else {
-                $start = '\'';
-                $end = '\'';
-            }
 
-            $parts = explode($start, $file);
-            $fileName = str_replace($end, '', $parts[1]);
+		$files = FileHelper::findFiles( $cacheDir.'/');
+		$uploadedFiles = [];
 
-            $this->dumpFiles[] = $uploadedFiles[] = $fileName;
-        }
-
+		foreach($files as $file) {
+			$this->dumpFiles[] = $uploadedFiles[] = $file;
+		}
+ 
         return $uploadedFiles;
     }
+	
+	/**
+     * Get cache dir
+     */
+	public function getCacheDir() {
+		
+		if (!file_exists(\yii::getAlias('@runtime').'/'.$this->cacheDir)) {
+			mkdir(\yii::getAlias('@runtime').'/'.$this->cacheDir);
+		}
+		
+		return \yii::getAlias('@runtime').'/'.$this->cacheDir;
+		
+	}
 
     /**
      * Clear temporary files
@@ -259,7 +273,7 @@ class BackupController extends Controller {
                     } else {
                         $hasError = false;
                     }
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     $tryCount++;
                     $lastError = mb_convert_encoding($e->getMessage(), 'utf8', 'cp1251');
                 }
