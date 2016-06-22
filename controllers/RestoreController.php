@@ -1,18 +1,19 @@
 <?php
 /**
- * Command for backup yii2 project databases and gitignored files and upload it to ftp.
+ * Created by PhpStorm.
+ * User: execut
+ * Date: 17.06.16
+ * Time: 14:48
  */
+
 namespace execut\backup\controllers;
 
+use execut\backup\Manager;
 use execut\yii\bash\Command;
-use execut\yii\helpers\ArrayHelper;
-use yii\baseException;
 use yii\console\Controller;
-use yii\db\Connection;
-use yii\helpers\Console;
-use yii\helpers\FileHelper;
 
-class BackupController extends Controller {
+class RestoreController extends Controller
+{
 
     /**
      * Redefine default dump commands.
@@ -41,100 +42,54 @@ class BackupController extends Controller {
             '{dbname} > {file}',
         ],
         'pgsql' => [
-            'PGPASSWORD="{password}" pg_dump',
+            'cat {file} | ',
+            'PGPASSWORD="{password}" psql',
             'U ' => '{user}',
             'h ' => '{host}',
             'p ' => '{port}',
-            '{dbname} > {file}'
+            '{dbname}{moduleId}'
         ],
     ];
 
-    /**
-     * Index action
-     */
-    public function actionIndex() {
-        try {
-            $this->makeDbDumps();
-
-            $uploadedFiles = $this->zipFiles();
-            $this->getManager()->uploadFiles($uploadedFiles);
-        } catch (Exception $e) {
-            $this->sendError($e->getMessage());
-        }
-
-        $this->clearFiles();
-    }
-
-    protected function getManager() {
-        return $this->module->manager;
-    }
-
-    /**
-     * Create sql databases dump files
-     *
-     * @throws Exception
-     */
-    public function makeDbDumps() {
+    public function actionIndex($version = null) {
+        $manager = $this->getManager();
+        $files = $manager->downloadFiles($version);
+        $resultFile = $manager->getTmpDir() . '/result' . $this->module->id . '.zip';
+        $command = new Command([
+            'params' => 'cat {files} > ' . $resultFile,
+            'values' => [
+                'files' => $files,
+            ]
+        ]);
+        $command->execute();
+        $command = new Command([
+            'params' => 'unzip ' . $resultFile,
+            'values' => [
+                'files' => $files,
+            ],
+        ]);
+        $command->execute();
         foreach ($this->module->dbKeys as $key) {
             $file = \yii::getAlias('@runtime') . '/' . $this->module->id . '-' . $key . '.sql';
             $command = $this->extractCommandFromParams($key, $file);
+            var_dump((string) $command);
+            exit;
             $command->execute();
 
             $this->dumpFiles[] = $file;
-            $this->folders[] = $file;
         }
+
+        var_dump($files);
+        exit;
     }
 
     /**
-     * Zipping list of files
-     *
-     * @param $out
-     * @return array
+     * @return Manager
      */
-    protected function zipFiles()
+    protected function getManager()
     {
-        $cacheDir = $this->getCacheDir();
-        $zipFile = $cacheDir.'/' . $this->module->key . '.zip';
-        $zipCommand = \yii::createObject(Command::class, [
-            'params' => 'zip - {folders} | split -d -b {filePartSize} - {zipFile}',
-            'values' => [
-                'folders' => $this->module->folders,
-                'filePartSize' => $this->module->filePartSize,
-                'zipFile' => $zipFile
-            ],
-        ]);
-
-        $zipCommand->execute();
-
-        $files = FileHelper::findFiles($cacheDir.'/');
-        $uploadedFiles = [];
-
-        foreach($files as $file) {
-            $this->dumpFiles[] = $uploadedFiles[] = $file;
-        }
-
-        return $uploadedFiles;
-    }
-
-    /**
-     * Clear temporary files
-     */
-    protected function clearFiles()
-    {
-        foreach ($this->dumpFiles as $dumpFile) {
-            unlink($dumpFile);
-        }
-    }
-
-    /**
-     * Sending dump error report
-     *
-     * @param $error
-     */
-    public function sendError($error)
-    {
-        mail($this->module->adminMail, 'Backup errors ' . date('Y-m-d H:i:s'), $error);
-        $this->stderr($error . "\n");
+        $manager = $this->module->manager;
+        return $manager;
     }
 
     /**
@@ -155,6 +110,7 @@ class BackupController extends Controller {
             'file' => $file,
             'host' => '',
             'port' => '',
+            'moduleId' => $this->module->id
         ];
 
         $driverName = $db->driverName;
