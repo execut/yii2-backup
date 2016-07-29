@@ -9,9 +9,15 @@
 namespace execut\backup\controllers;
 
 use execut\backup\Manager;
+use execut\backup\Module;
 use execut\yii\bash\Command;
 use yii\console\Controller;
 
+/**
+ * Class RestoreController
+ * @package execut\backup\controllers
+ * @property Module $module
+ */
 class RestoreController extends Controller
 {
 
@@ -27,6 +33,7 @@ class RestoreController extends Controller
 
     protected $dumpFiles = [];
 
+    ///usr/lib/postgresql/9.4/bin/bdr_dump -Fp -U postgres detalika_3 -f /tmp/data.sql --data-only
     /**
      * Default dump commands definitions. Keys of array this name of database driver.
      *
@@ -47,40 +54,49 @@ class RestoreController extends Controller
             'U ' => '{user}',
             'h ' => '{host}',
             'p ' => '{port}',
-            '{dbname}{moduleId}'
+            '{dbname}'
         ],
     ];
 
+    public $createDbCommands = [];
+    protected $defaultCreateDbCommand = [
+        'pgsql' => [
+            'PGPASSWORD="{password}" createdb',
+            'U ' => '{user}',
+            'h ' => '{host}',
+            'p ' => '{port}',
+            '{dbname}'
+        ]
+    ];
+
     public function actionIndex($version = null) {
-        $manager = $this->getManager();
-        $files = $manager->downloadFiles($version);
-        $resultFile = $manager->getTmpDir() . '/result' . $this->module->id . '.zip';
-        $command = new Command([
-            'params' => 'cat {files} > ' . $resultFile,
-            'values' => [
-                'files' => $files,
-            ]
-        ]);
-        $command->execute();
-        $command = new Command([
-            'params' => 'unzip ' . $resultFile,
-            'values' => [
-                'files' => $files,
-            ],
-        ]);
-        $command->execute();
-        foreach ($this->module->dbKeys as $key) {
-            $file = \yii::getAlias('@runtime') . '/' . $this->module->id . '-' . $key . '.sql';
-            $command = $this->extractCommandFromParams($key, $file);
-            var_dump((string) $command);
-            exit;
-            $command->execute();
+//        $manager = $this->getManager();
+//        $files = $manager->downloadFiles($version);
+//        $this->implodeArhive($files);
+//        $this->extractArhive();
+        $this->applyDumps();
+//        $this->moveFolders();
+    }
 
-            $this->dumpFiles[] = $file;
+    protected function moveFolders() {
+        $folders = $this->module->folders;
+        foreach ($folders as $folder) {
+            $fromDir = $manager->getTmpDir() . '/' . $folder;
+            $toDir = $folder;
+            $rmCommand = new Command([
+                'params' => 'rm -Rf {toDir}/*'
+            ]);
+            $rmCommand->execute();
+
+            $moveCommand = new Command([
+                'params' => 'mv -Rf {fromDir} {toDir}',
+                'values' => [
+                    'fromDir' => $fromDir,
+                    'toDir' => $toDir,
+                ],
+            ]);
+            $moveCommand->execute();
         }
-
-        var_dump($files);
-        exit;
     }
 
     /**
@@ -98,8 +114,12 @@ class RestoreController extends Controller
      * @return string
      * @throws Exception
      */
-    protected function extractCommandFromParams($key, $file)
+    protected function extractCommandFromParams($key, $file, $commandsParams = null)
     {
+        if ($commandsParams === null) {
+            $commandsParams = array_merge($this->defaultDumpCommands, $this->dumpCommands);
+        }
+
         /**
          * @var Connection $db
          */
@@ -127,7 +147,6 @@ class RestoreController extends Controller
             $params[$paramKey] = $paramValue;
         }
 
-        $commandsParams = array_merge($this->defaultDumpCommands, $this->dumpCommands);
         if (!array_key_exists($driverName, $commandsParams)) {
             throw new Exception('Driver by name "' . $driverName . '" is not supported, set it in "dumpCommands" param');
         }
@@ -139,5 +158,58 @@ class RestoreController extends Controller
         ]);
 
         return $command;
+    }
+
+    /**
+     * @param $resultFile
+     * @param $files
+     * @return Command
+     */
+    protected function implodeArhive($files)
+    {
+        $resultFile = $this->getResultFile();
+        $command = new Command([
+            'params' => 'cat {files} > ' . $resultFile,
+            'values' => [
+                'files' => $files,
+            ]
+        ]);
+        return $command->execute();
+    }
+
+    /**
+     * @param $resultFile
+     * @param $files
+     * @return Command
+     */
+    protected function extractArchive()
+    {
+        $resultFile = $this->getResultFile();
+        $command = new Command([
+            'params' => 'unzip ' . $resultFile,
+        ]);
+        return $command->execute();
+    }
+
+    protected function applyDumps()
+    {
+        foreach ($this->module->dbKeys as $key) {
+            $file = \yii::getAlias('@runtime') . '/' . $this->module->id . '-' . $key . '.sql';
+            $createDbCommand = $this->extractCommandFromParams($key, $file, array_merge($this->defaultCreateDbCommand, $this->createDbCommands));
+            $createDbCommand->execute();
+
+            $applyDbCommand = $this->extractCommandFromParams($key, $file);
+            $applyDbCommand->execute();
+        }
+    }
+
+    /**
+     * @param $manager
+     * @return string
+     */
+    protected function getResultFile()
+    {
+        $resultFile = $manager->getTmpDir() . '/result' . $this->module->id . '.zip';
+        return $resultFile;
     }
 }

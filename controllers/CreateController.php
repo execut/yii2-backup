@@ -4,6 +4,7 @@
  */
 namespace execut\backup\controllers;
 
+use execut\backup\Manager;
 use execut\yii\bash\Command;
 use execut\yii\helpers\ArrayHelper;
 use yii\baseException;
@@ -12,7 +13,7 @@ use yii\db\Connection;
 use yii\helpers\Console;
 use yii\helpers\FileHelper;
 
-class BackupController extends Controller {
+class CreateController extends Controller {
 
     /**
      * Redefine default dump commands.
@@ -53,6 +54,7 @@ class BackupController extends Controller {
      * Index action
      */
     public function actionIndex() {
+        $this->dumpFiles = $this->module->folders;
         try {
             $this->makeDbDumps();
 
@@ -65,6 +67,9 @@ class BackupController extends Controller {
         $this->clearFiles();
     }
 
+    /**
+     * @return Manager
+     */
     protected function getManager() {
         return $this->module->manager;
     }
@@ -81,7 +86,6 @@ class BackupController extends Controller {
             $command->execute();
 
             $this->dumpFiles[] = $file;
-            $this->folders[] = $file;
         }
     }
 
@@ -98,7 +102,7 @@ class BackupController extends Controller {
         $zipCommand = \yii::createObject(Command::class, [
             'params' => 'zip - {folders} | split -d -b {filePartSize} - {zipFile}',
             'values' => [
-                'folders' => $this->module->folders,
+                'folders' => $this->dumpFiles,
                 'filePartSize' => $this->module->filePartSize,
                 'zipFile' => $zipFile
             ],

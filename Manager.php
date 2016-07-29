@@ -130,7 +130,6 @@ class Manager extends Component
      * Get cache dir
      */
     public function getTmpDir() {
-
         $cacheDir = \yii::getAlias('@runtime').'/'.$this->tmpDir;
         if (!file_exists($cacheDir)) {
             mkdir($cacheDir);
