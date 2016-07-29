@@ -8,7 +8,6 @@
 
 namespace execut\backup;
 
-
 use yii\base\Component;
 
 class Manager extends Component
@@ -143,11 +142,11 @@ class Manager extends Component
      */
     protected function goToBackupDir($ftp)
     {
-        if (!$ftp->isDir($this->dir)) {
-            $ftp->mkdir($this->dir);
+        if (!$ftp->isDir($this->ftpDir)) {
+            $ftp->mkdir($this->ftpDir);
         }
 
-        $ftp->chdir($this->dir);
+        $ftp->chdir($this->ftpDir);
     }
 
     /**
@@ -161,9 +160,9 @@ class Manager extends Component
         }
 
         $ftp = new \yii2mod\ftp\FtpClient();
-        $ftp->connect($this->host, $this->ssl, $this->port, $this->timeout);
+        $ftp->connect($this->ftpHost, $this->ftpSsl, $this->ftpPort, $this->ftpTimeout);
         $ftp->pasv(true);
-        $ftp->login($this->login, $this->password);
+        $ftp->login($this->ftpLogin, $this->ftpPassword);
         $this->goToBackupDir($ftp);
 
         return $this->connection = $ftp;
@@ -177,12 +176,13 @@ class Manager extends Component
      */
     protected function uploadFile($uploadedFile)
     {
+        $file = $this->getUploadedFileName();
         $ftp = $this->getConnection();
+        $ftpName = $file . '_' . $key . '.zip';
         $hasError = true;
         $tryCount = 0;
         while ($hasError && $tryCount != 9) {
             try {
-                $ftpName = basename($uploadedFile);
                 $ftp->fput($ftpName, fopen($uploadedFile, 'r'), FTP_BINARY);
                 $ftpFileSize = $ftp->size($ftpName);
                 $realFileSize = filesize($uploadedFile);
